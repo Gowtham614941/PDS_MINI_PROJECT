@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Expense Analyzer</title>
+  <!-- Link external styles sheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Premium Application Header -->
+  <header>
+    <div class="logo-container">
+      <div class="logo-icon">S</div>
+      <div class="logo-text">
+        <h1 class="outfit-font">Smart Expense Analyzer</h1>
+        <p>Personal Wealth Intelligence Engine</p>
+      </div>
+    </div>
+    
+    <!-- Navigation Tabs -->
+    <nav>
+      <button class="nav-tab active" data-tab="tab-dashboard">Dashboard</button>
+      <button class="nav-tab" data-tab="tab-ledger">Ledger Log</button>
+      <button class="nav-tab" data-tab="tab-audits">Anomaly Audits</button>
+      <button class="nav-tab" data-tab="tab-forecast">Forecasting</button>
+      <button class="nav-tab" data-tab="tab-settings">Budget Configuration</button>
+    </nav>
+
+    <!-- Trigger Add modal button -->
+    <button class="btn-primary" id="btn-open-modal">
+      <span>+</span> Add Transaction
+    </button>
+  </header>
+
+  <!-- Main Workspace -->
+  <main>
+
+    <!-- SECTION 1: DASHBOARD TAB -->
+    <section id="tab-dashboard" class="tab-content active">
+      <!-- Quick Statistics Panels -->
+      <div class="stats-grid">
+        <div class="glass-panel stat-card">
+          <p class="stat-label">Cumulative Spent</p>
+          <div class="stat-value outfit-font" id="stat-total-spent">$0.00</div>
+          <p class="stat-sub" id="stat-transaction-count">0 recorded entries</p>
+        </div>
+        <div class="glass-panel stat-card stat-success">
+          <p class="stat-label">Active Monthly Budget</p>
+          <div class="stat-value outfit-font" id="stat-total-budget">$0.00</div>
+          <p class="stat-sub" id="stat-budget-usage">0% average usage</p>
+        </div>
+        <div class="glass-panel stat-card stat-alert">
+          <p class="stat-label">Outliers Flagged</p>
+          <div class="stat-value outfit-font" id="stat-outliers-count">0</div>
+          <p class="stat-sub" id="stat-outliers-ratio">Z-score > 2.0 threshold</p>
+        </div>
+        <div class="glass-panel stat-card stat-warning">
+          <p class="stat-label font-title">Daily Accumulation Rate</p>
+          <div class="stat-value outfit-font" id="stat-daily-rate">$0.00</div>
+          <p class="stat-sub" id="stat-forecast-r2">Fit quality R²: --</p>
+        </div>
+      </div>
+
+      <!-- Charts Panels Grid Layout -->
+      <div class="dashboard-grid">
+        <!-- 1. Cumulative Spending & Trend (Regression Line) -->
+        <div class="glass-panel chart-card">
+          <div class="card-header">
+            <h2 class="card-title">📈 Spending Projections & Linear Regression Trend</h2>
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-trend"></canvas>
+          </div>
+        </div>
+
+        <!-- 2. Category Allocation Pie/Donut -->
+        <div class="glass-panel chart-card">
+          <div class="card-header">
+            <h2 class="card-title">🍰 Category Distribution</h2>
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-donut"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Budgets vs Actual Side-by-side Horizontal Bar Chart -->
+      <div class="glass-panel chart-card" style="margin-bottom: 0;">
+        <div class="card-header">
+          <h2 class="card-title">⚖️ Category Budgets vs. Actual Spending</h2>
+        </div>
+        <div class="chart-container" style="height: 380px;">
+          <canvas id="chart-comparison"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: LEDGER LOG TAB -->
+    <section id="tab-ledger" class="tab-content">
+      <div class="glass-panel" style="padding: 24px;">
+        <div class="table-header-bar">
+          <h2 class="outfit-font">Transaction Ledger Log</h2>
+          <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <button class="btn-secondary" id="btn-export-csv" style="padding: 6px 12px; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+              📥 Export CSV
+            </button>
+            <button class="btn-secondary" id="btn-trigger-import" style="padding: 6px 12px; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+              📤 Import CSV
+            </button>
+            <input type="file" id="input-import-csv" accept=".csv" style="display: none;">
+
+            <span style="font-size: 13px; color: var(--text-muted); margin-left: 8px;">Filter Category:</span>
+            <select class="form-control" id="ledger-filter-category" style="width: auto; padding: 6px 12px;">
+              <option value="ALL">All Categories</option>
+              <option value="Food">Food</option>
+              <option value="Travel">Travel</option>
+              <option value="Entertainment">Entertainment</option>
+              <option value="Utilities">Utilities</option>
+              <option value="Shopping">Shopping</option>
+              <option value="Others">Others</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="table-container">
+          <table id="ledger-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th style="text-align: right;">Amount ($/₹)</th>
+                <th style="text-align: center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="ledger-tbody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: ANOMALY AUDITS TAB -->
+    <section id="tab-audits" class="tab-content">
+      <div class="glass-panel" style="padding: 24px; margin-bottom: 24px;">
+        <h2 class="outfit-font" style="margin-bottom: 10px;">🛡️ Outlier Audit Panel (Z-Score)</h2>
+        <p style="font-size: 14px; color: var(--text-muted); line-height: 1.6;">
+          This audit panel scans your transactions and flags any item where the spending amount exceeds 
+          <strong>2.0 standard deviations</strong> above the category's average. 
+          Mathematical formula: <code style="background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; color: var(--primary);">Z = (Amount - Average) / StdDev</code>.
+        </p>
+      </div>
+
+      <div class="glass-panel" style="padding: 24px;">
+        <div class="table-container">
+          <table id="anomaly-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th style="text-align: right;">Amount ($/₹)</th>
+                <th style="text-align: right;">Category Average</th>
+                <th style="text-align: center;">Z-Score</th>
+              </tr>
+            </thead>
+            <tbody id="anomaly-tbody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: FORECASTING TAB -->
+    <section id="tab-forecast" class="tab-content">
+      <div class="stats-grid">
+        <div class="glass-panel stat-card">
+          <p class="stat-label">Model Slope (Daily Rate)</p>
+          <div class="stat-value outfit-font" id="forecast-slope">$0.00</div>
+          <p class="stat-sub">Units accumulated per day</p>
+        </div>
+        <div class="glass-panel stat-card">
+          <p class="stat-label">Model Intercept (c)</p>
+          <div class="stat-value outfit-font" id="forecast-intercept">$0.00</div>
+          <p class="stat-sub">Starting offset variable</p>
+        </div>
+        <div class="glass-panel stat-card">
+          <p class="stat-label">Coefficient of Fit (R²)</p>
+          <div class="stat-value outfit-font" id="forecast-r2-val">0.0000</div>
+          <p class="stat-sub" id="forecast-fit-description">Model prediction consistency</p>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <!-- Projections Forecast Grid Box -->
+        <div class="glass-panel" style="padding: 24px; display: flex; flex-direction: column; justify-content: center;">
+          <h3 class="outfit-font" style="margin-bottom: 16px;">🔮 Projected Future Spending (Least Squares Regression)</h3>
+          <div class="budget-progress-container">
+            <div class="budget-progress-item">
+              <div class="budget-progress-info">
+                <span>Estimated Spending for Next 7 Days</span>
+                <span class="outfit-font" id="forecast-7day" style="font-weight: 600; color: var(--warning);">$0.00</span>
+              </div>
+              <div class="budget-progress-bar-bg">
+                <div class="budget-progress-bar-fill" id="forecast-7day-bar" style="background: var(--warning-gradient); width: 0%;"></div>
+              </div>
+            </div>
+            <div class="budget-progress-item">
+              <div class="budget-progress-info">
+                <span>Estimated Spending for Next 30 Days</span>
+                <span class="outfit-font" id="forecast-30day" style="font-weight: 600; color: var(--warning);">$0.00</span>
+              </div>
+              <div class="budget-progress-bar-bg">
+                <div class="budget-progress-bar-fill" id="forecast-30day-bar" style="background: var(--primary-gradient); width: 0%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Predictability explanation -->
+        <div class="glass-panel" style="padding: 24px;">
+          <h3 class="outfit-font" style="margin-bottom: 12px;">📊 How Forecasting Works</h3>
+          <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6; margin-bottom: 12px;">
+            The model fits a straight line of best fit through your daily cumulative spending data points. 
+            The equation represents <code style="color: var(--primary);">Y = m * X + c</code>, where 
+            <strong>Y</strong> is total money spent, <strong>X</strong> is the number of days elapsed, 
+            <strong>m</strong> is the slope (daily rate), and <strong>c</strong> is the intercept.
+          </p>
+          <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6;">
+            <strong>R² (R-Squared)</strong> measures how close your actual daily spending aligns to this line. 
+            An R² close to 1 indicates uniform, steady daily expenditures. Lower values represent volatile, random spending spikes.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: BUDGET SETTINGS TAB -->
+    <section id="tab-settings" class="tab-content">
+      <div class="glass-panel" style="padding: 30px; max-width: 600px; margin: 0 auto;">
+        <h2 class="outfit-font" style="margin-bottom: 10px;">⚙️ Configure Category Budgets</h2>
+        <p style="font-size: 13.5px; color: var(--text-muted); margin-bottom: 24px;">
+          Set monthly expense caps for each category. Spending beyond these numbers will turn dashboard indicators red.
+        </p>
+        
+        <form id="settings-budget-form">
+          <div class="form-group">
+            <label class="form-label" for="budget-food">Food & Beverages</label>
+            <input type="number" step="1" class="form-control" id="budget-food" placeholder="5000">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="budget-travel">Travel & Fuel</label>
+            <input type="number" step="1" class="form-control" id="budget-travel" placeholder="3000">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="budget-entertainment">Entertainment & Events</label>
+            <input type="number" step="1" class="form-control" id="budget-entertainment" placeholder="2500">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="budget-utilities">Utilities & Bills</label>
+            <input type="number" step="1" class="form-control" id="budget-utilities" placeholder="4000">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="budget-shopping">Shopping & Clothes</label>
+            <input type="number" step="1" class="form-control" id="budget-shopping" placeholder="6000">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="budget-others">Others & Miscellaneous</label>
+            <input type="number" step="1" class="form-control" id="budget-others" placeholder="2000">
+          </div>
+          
+          <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 10px;">
+            Save Settings
+          </button>
+        </form>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ADD TRANSACTION DIALOG MODAL -->
+  <div class="modal-overlay" id="modal-add-transaction">
+    <div class="glass-panel modal-box">
+      <div class="modal-header">
+        <h2 class="outfit-font">Log New Expense</h2>
+        <button class="modal-close" id="btn-close-modal">&times;</button>
+      </div>
+      
+      <form id="form-add-expense">
+        <!-- Date selection -->
+        <div class="form-group">
+          <label class="form-label" for="input-date">Date</label>
+          <input type="date" class="form-control" id="input-date" required>
+        </div>
+        
+        <!-- Description input -->
+        <div class="form-group">
+          <label class="form-label" for="input-description">Description</label>
+          <input type="text" class="form-control" id="input-description" placeholder="e.g. Starbucks late double mocha" required>
+        </div>
+        
+        <!-- AI categorizer auto-suggest panel -->
+        <div class="ai-suggest-badge" id="ai-suggest-box">
+          <div>
+            🤖 <span style="font-weight: 500;">AI Suggestion:</span> <span id="ai-predicted-category" style="font-weight: 600;">Food</span>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="badge badge-success" id="btn-accept-ai" style="border:none; cursor:pointer;">Accept</button>
+            <button type="button" class="badge badge-danger" id="btn-reject-ai" style="border:none; cursor:pointer;">Edit</button>
+          </div>
+        </div>
+        
+        <!-- Category selection drop down -->
+        <div class="form-group">
+          <label class="form-label" for="input-category">Category</label>
+          <select class="form-control" id="input-category">
+            <option value="Food">Food</option>
+            <option value="Travel">Travel</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Utilities">Utilities</option>
+            <option value="Shopping">Shopping</option>
+            <option value="Others">Others</option>
+          </select>
+        </div>
+        
+        <!-- Amount input -->
+        <div class="form-group">
+          <label class="form-label" for="input-amount">Amount ($/₹)</label>
+          <input type="number" step="0.01" class="form-control" id="input-amount" placeholder="0.00" required>
+        </div>
+        
+        <!-- Live Z-Score anomaly alert box -->
+        <div class="anomaly-alert-container" id="anomaly-alert-box">
+          <div class="anomaly-alert-title">
+            ⚠️ STATISTICAL ANOMALY WARNING
+          </div>
+          <div class="anomaly-alert-desc" id="anomaly-alert-text">
+            This amount is extremely high compared to your usual expenditure in this category! (Z-Score: --)
+          </div>
+        </div>
+        
+        <!-- Modal submit buttons -->
+        <div class="modal-buttons">
+          <button type="button" class="btn-secondary" id="btn-cancel-modal">Cancel</button>
+          <button type="submit" class="btn-primary">Save Transaction</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Footer Section -->
+  <footer>
+    <p>Smart Expense Analyzer &copy; 2026. Powered by Naive Bayes & Linear Regression models.</p>
+  </footer>
+
+  <!-- Link Chart.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Link Frontend JS Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
